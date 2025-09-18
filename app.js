@@ -1,38 +1,31 @@
 // 引入express中间件
 const express = require('express')
+const connectDB = require('./db');
 // 创建web服务器
 const app = express()
-// 引入商品列表数据
-const goodsList = require('./src/goods.js')
-// 引入省份数据
-const province = require('./src/province.js')
 
 // 跨域处理
-// app.all('*', (req, res, next) => {
-//   res.header('Access-Control-Allow-Origin', '*')
-//   res.header('Access-Control-Allow-Methods', 'GET,POST')
-//   next()
-// })
-
-// 返回商品列表
-app.post('/mh/goodsList', (req, res) => {
-  res.send(goodsList)
+app.all('*', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*') // 允许所有域名访问，生产环境建议指定具体域名
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS') // 允许的 HTTP 方法
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization') // 允许的请求头，如果前端有自定义头或token需要传递，要加上
+  // 如果是预检请求（OPTIONS），直接返回 200
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200)
+  }
+  next()
 })
 
-// 返回省份数据
-app.post('/mh/province', (req, res) => {
-  res.send(province)
-})
+app.use(express.json()) // 用来解析客户端发送的 JSON 格式请求体
+app.use(express.urlencoded({ extended: true })) // 可选，解析表单提交
 
-//并发请求
-for (let i = 0; i < 100; i++) {
-  //最大请求接口数是100个
-  app.get('/test' + i, (req, res) => {
-    res.send({
-      result: `请求成功:请求的接口是第${i}`
-    })
-  })
-}
+// 1. 先连接 MongoDB
+connectDB();
+
+// 挂载路由
+const billRoutes = require('./routes/billRoutes.js')
+app.use('/api', billRoutes)
+
 
 // 启动服务器监听8000端口
 app.listen(8000, () => {
